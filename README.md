@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PDFox - Modern SaaS PDF Editor
+
+PDFox is a complete, production-ready SaaS web application for editing, annotating, and signing PDFs. It features a polished dark-mode UI, secure backend, and a robust in-browser PDF editing experience.
+
+## Features
+
+- **Full-Stack Next.js**: Built with the latest Next.js App Router and Server Components.
+- **Robust Rendering**: High-performance PDF rendering using `pdf.js`.
+- **Interactive Annotations**: Add text, highlights, and freehand drawings with `Fabric.js`.
+- **Digital Signatures**: Create and place secure digital signatures.
+- **SaaS Foundation**: Complete with Clerk Authentication, Prisma ORM, and Supabase Storage.
+- **Billing Ready**: Scaffolded Stripe integration with predefined pricing tiers.
+- **Premium Design 시스템**: Tailored with Tailwind CSS v4 and shadcn/ui.
+
+## Tech Stack
+
+- **Frontend**: Next.js 15, React 19, Tailwind CSS v4, Lucide Icons.
+- **State Management**: Zustand.
+- **Backend**: Next.js Route Handlers & Server Actions.
+- **Database**: PostgreSQL with Prisma ORM.
+- **Auth**: Clerk.
+- **Storage**: Supabase Storage.
+- **PDF Engine**: pdf.js (rendering) & pdf-lib (manipulation/export).
+- **Interactive Layer**: Fabric.js.
 
 ## Getting Started
 
-First, run the development server:
-
+### 1. Clone & Install
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Environment Setup
+Copy `.env.example` to `.env` and fill in your credentials:
+- Clerk (Publishable & Secret keys)
+- Supabase (URL & Keys)
+- PostgreSQL (DATABASE_URL)
+- Stripe (Secret & Webhook keys)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Database Migration
+```bash
+npx prisma db push
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Development Server
+```bash
+npm run dev
+```
 
-## Learn More
+## Architecture
 
-To learn more about Next.js, take a look at the following resources:
+- `src/app`: App Router structure (marketing, dashboard, editor).
+- `src/components`: Reusable UI, marketing, and editor components.
+- `src/lib`: Core service modules (supabase, prisma, stripe, pdf-export).
+- `src/stores`: Zustand global state for the editor.
+- `src/types`: Unified TypeScript definitions.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Future Roadmap
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- OCR (Optical Character Recognition)
+- AI-powered PDF Chat & Summarization
+- Real-time Collaboration
+- Template Management
+- Advanced Form Filling
+- Team / Enterprise Workspaces

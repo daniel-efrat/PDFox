@@ -1,0 +1,34 @@
+
+> pdfox-init@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+./src/components/dashboard/Sidebar.tsx:2:10
+Ecmascript file had an error
+  1 | import Link from "next/link";
+> 2 | import { usePathname } from "next/navigation";
+    |          ^^^^^^^^^^^
+  3 | import { 
+  4 |   LayoutDashboard, 
+  5 |   FileText, 
+
+You're importing a component that needs `usePathname`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/dashboard/Sidebar.tsx
+    ./src/app/(dashboard)/layout.tsx
+
+
+    at <unknown> (./src/components/dashboard/Sidebar.tsx:2:10)
