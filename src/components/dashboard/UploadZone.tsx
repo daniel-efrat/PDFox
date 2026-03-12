@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Upload, X, FileText, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uploadDocument } from "@/actions/documents";
@@ -12,6 +12,15 @@ export function UploadZone() {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const handler = () => {
+      fileInputRef.current?.click();
+    };
+
+    window.addEventListener("pdfox:upload-pdf", handler);
+    return () => window.removeEventListener("pdfox:upload-pdf", handler);
+  }, []);
 
   const onUpload = async (file: File) => {
     if (!file.type.includes("pdf")) {

@@ -9,7 +9,8 @@ import { revalidatePath } from "next/cache";
  */
 async function getOrCreateUser() {
   const supabaseServer = createSupabaseServerClient();
-  const { data: authData, error: authErr } = await supabaseServer.auth.getUser();
+  const { data: authData, error: authErr } =
+    await supabaseServer.auth.getUser();
   if (authErr || !authData?.user) throw new Error("Unauthorized");
 
   const user = authData.user;
@@ -17,32 +18,45 @@ async function getOrCreateUser() {
   const email = user.email ?? "";
   const name = user.user_metadata?.full_name || user.email || "User";
 
-  const { data: upserted, error: upsertError } = await supabaseAdmin
+  // 1) Try fetch existing user row.
+  const { data: existing, error: existingErr } = await supabaseAdmin
     .from("User")
-    .upsert(
-      {
-        id: crypto.randomUUID(),
-        clerkId: user.id,
-        email,
-        name,
-        image: user.user_metadata?.avatar_url,
-      },
-      { onConflict: "clerkId" }
-    )
+    .select("id, clerkId")
+    .eq("clerkId", user.id)
+    .maybeSingle();
+
+  if (existingErr) {
+    console.error("[getOrCreateUser] select error", existingErr);
+    throw new Error("Failed to create user");
+  }
+  if (existing) return existing;
+
+  // 2) Create the user row.
+  // Use the Supabase auth user id as our DB id to keep it stable.
+  const { data: inserted, error: insertErr } = await supabaseAdmin
+    .from("User")
+    .insert({
+      id: user.id,
+      clerkId: user.id,
+      email,
+      name,
+      image: user.user_metadata?.avatar_url,
+    })
     .select("id, clerkId")
     .maybeSingle();
 
-  if (upsertError || !upserted) {
-    console.error("[getOrCreateUser] upsert error", upsertError);
+  if (insertErr || !inserted) {
+    console.error("[getOrCreateUser] insert error", insertErr);
     throw new Error("Failed to create user");
   }
 
-  return upserted;
+  return inserted;
 }
 
 export async function uploadDocument(formData: FormData) {
   const supabaseServer = createSupabaseServerClient();
-  const { data: authData, error: authErr } = await supabaseServer.auth.getUser();
+  const { data: authData, error: authErr } =
+    await supabaseServer.auth.getUser();
   if (authErr || !authData?.user) throw new Error("Unauthorized");
   const userId = authData.user.id;
 
@@ -54,8 +68,8 @@ export async function uploadDocument(formData: FormData) {
   // 1. Upload to Supabase Storage
   const fileExtension = file.name.split(".").pop();
   const fileId = `${userId}/${crypto.randomUUID()}.${fileExtension}`;
-  
-  const { data: storageData, error: storageError } = await supabaseAdmin.storage
+
+  const { error: storageError } = await supabaseAdmin.storage
     .from("pdfs")
     .upload(fileId, file);
 
@@ -65,9 +79,9 @@ export async function uploadDocument(formData: FormData) {
   }
 
   // Get Public URL
-  const { data: { publicUrl } } = supabaseAdmin.storage
-    .from("pdfs")
-    .getPublicUrl(fileId);
+  const {
+    data: { publicUrl },
+  } = supabaseAdmin.storage.from("pdfs").getPublicUrl(fileId);
 
   // 2. Save to Supabase Postgres
   const { data: document, error: docError } = await supabaseAdmin
@@ -93,7 +107,8 @@ export async function uploadDocument(formData: FormData) {
 
 export async function getDocuments() {
   const supabaseServer = createSupabaseServerClient();
-  const { data: authData, error: authErr } = await supabaseServer.auth.getUser();
+  const { data: authData, error: authErr } =
+    await supabaseServer.auth.getUser();
   if (authErr || !authData?.user) return [];
   const userId = authData.user.id;
 
@@ -124,7 +139,8 @@ export async function getDocuments() {
 
 export async function deleteDocument(id: string) {
   const supabaseServer = createSupabaseServerClient();
-  const { data: authData, error: authErr } = await supabaseServer.auth.getUser();
+  const { data: authData, error: authErr } =
+    await supabaseServer.auth.getUser();
   if (authErr || !authData?.user) throw new Error("Unauthorized");
   const userId = authData.user.id;
 
@@ -164,8 +180,10 @@ export async function deleteDocument(id: string) {
 
 export async function getDashboardStats() {
   const supabaseServer = createSupabaseServerClient();
-  const { data: authData, error: authErr } = await supabaseServer.auth.getUser();
-  if (authErr || !authData?.user) return { totalDocs: 0, totalSize: 0, signatures: 0 };
+  const { data: authData, error: authErr } =
+    await supabaseServer.auth.getUser();
+  if (authErr || !authData?.user)
+    return { totalDocs: 0, totalSize: 0, signatures: 0 };
   const userId = authData.user.id;
 
   try {
@@ -179,8 +197,14 @@ export async function getDashboardStats() {
     if (!dbUser) return { totalDocs: 0, totalSize: 0, signatures: 0 };
 
     const [docsCountRes, sigCountRes] = await Promise.all([
-      supabaseAdmin.from("Document").select("id", { count: "exact", head: true }).eq("ownerId", dbUser.id),
-      supabaseAdmin.from("Signature").select("id", { count: "exact", head: true }).eq("userId", dbUser.id),
+      supabaseAdmin
+        .from("Document")
+        .select("id", { count: "exact", head: true })
+        .eq("ownerId", dbUser.id),
+      supabaseAdmin
+        .from("Signature")
+        .select("id", { count: "exact", head: true })
+        .eq("userId", dbUser.id),
     ]);
 
     if (docsCountRes.error) throw docsCountRes.error;
@@ -199,7 +223,8 @@ export async function getDashboardStats() {
 
 export async function getDocument(id: string) {
   const supabaseServer = createSupabaseServerClient();
-  const { data: authData, error: authErr } = await supabaseServer.auth.getUser();
+  const { data: authData, error: authErr } =
+    await supabaseServer.auth.getUser();
   if (authErr || !authData?.user) throw new Error("Unauthorized");
   const userId = authData.user.id;
 

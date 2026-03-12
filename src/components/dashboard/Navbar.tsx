@@ -40,8 +40,7 @@ export function DashboardNavbar() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => {
-              const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-              if (input) input.click();
+              window.dispatchEvent(new Event("pdfox:upload-pdf"));
             }}
             className="flex items-center gap-2 h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium shadow-sm transition-transform active:scale-95"
           >
