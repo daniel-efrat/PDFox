@@ -21,6 +21,7 @@ async function getOrCreateUser() {
     .from("User")
     .upsert(
       {
+        id: crypto.randomUUID(),
         clerkId: user.id,
         email,
         name,
@@ -54,7 +55,7 @@ export async function uploadDocument(formData: FormData) {
   const fileExtension = file.name.split(".").pop();
   const fileId = `${userId}/${crypto.randomUUID()}.${fileExtension}`;
   
-  const { data: storageData, error: storageError } = await supabase.storage
+  const { data: storageData, error: storageError } = await supabaseAdmin.storage
     .from("pdfs")
     .upload(fileId, file);
 
@@ -64,7 +65,7 @@ export async function uploadDocument(formData: FormData) {
   }
 
   // Get Public URL
-  const { data: { publicUrl } } = supabase.storage
+  const { data: { publicUrl } } = supabaseAdmin.storage
     .from("pdfs")
     .getPublicUrl(fileId);
 
@@ -72,6 +73,7 @@ export async function uploadDocument(formData: FormData) {
   const { data: document, error: docError } = await supabaseAdmin
     .from("Document")
     .insert({
+      id: crypto.randomUUID(),
       title: file.name,
       fileId: fileId,
       fileUrl: publicUrl,

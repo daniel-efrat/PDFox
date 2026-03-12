@@ -2,11 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { EditorToolbar } from "@/components/editor/Toolbar";
-import { EditorSidebar } from "@/components/editor/Sidebar";
-import { PDFViewer } from "@/components/editor/PDFViewer";
+import dynamicLoader from "next/dynamic";
 import { useEditorStore } from "@/stores/useEditorStore";
 import { getDocument } from "@/actions/documents";
+import { EditorToolbar } from "@/components/editor/Toolbar";
+
+const PDFViewer = dynamicLoader(
+  () => import("@/components/editor/PDFViewer").then((mod) => mod.PDFViewer),
+  { ssr: false }
+);
+
+const EditorSidebar = dynamicLoader(
+  () => import("@/components/editor/Sidebar").then((mod) => mod.EditorSidebar),
+  { ssr: false }
+);
 
 export const dynamic = "force-dynamic";
 

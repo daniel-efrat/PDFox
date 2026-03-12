@@ -4,14 +4,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { useMemo } from "react";
 import { Search, Bell, Plus, LogOut } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 
 export function DashboardNavbar() {
   const router = useRouter();
   const supabase = useMemo(
     () =>
-      createClient(
+      createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       ),

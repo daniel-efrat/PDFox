@@ -10,22 +10,36 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
 
 export function createSupabaseServerClient() {
   const cookieStore = cookies();
-  const get = (name: string) => (cookieStore as any)?.get?.(name)?.value;
-  const set = (name: string, value: string, options: any) => {
-    (cookieStore as any)?.set?.({ name, value, ...options });
-  };
-  const remove = (name: string, options: any) => {
-    (cookieStore as any)?.set?.({ name, value: "", ...options });
-  };
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get,
-        set,
-        remove,
+        async get(name: string) {
+          const store = await cookieStore;
+          return store.get(name)?.value;
+        },
+        async set(name: string, value: string, options: any) {
+          try {
+            const store = await cookieStore;
+            store.set({ name, value, ...options });
+          } catch (error) {
+            // The `set` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+        async remove(name: string, options: any) {
+          try {
+            const store = await cookieStore;
+            store.set({ name, value: "", ...options });
+          } catch (error) {
+            // The `remove` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
       },
     }
   );
