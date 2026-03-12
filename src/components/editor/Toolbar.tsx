@@ -40,7 +40,11 @@ export function EditorToolbar() {
     selectedColor,
     setSelectedColor,
     selectedBrushSize,
-    setSelectedBrushSize
+    setSelectedBrushSize,
+    selectedFontFamily,
+    setSelectedFontFamily,
+    selectedFontSize,
+    setSelectedFontSize
   } = useEditorStore();
 
   const tools = [
@@ -58,7 +62,7 @@ export function EditorToolbar() {
     { name: 'Green', value: '#10B981' },
     { name: 'Red', value: '#EF4444' },
     { name: 'Black', value: '#000000' },
-    { name: 'Yellow', value: 'rgba(255, 255, 0, 0.3)' },
+    { name: 'Highlight', value: 'rgba(255, 255, 0, 0.4)' },
   ];
 
   return (
@@ -137,6 +141,36 @@ export function EditorToolbar() {
                 <div className="h-4 w-[1px] bg-border"></div>
               </>
             )}
+
+            {activeTool === 'TEXT' && (
+              <>
+                <div className="flex items-center gap-2">
+                   <select 
+                    value={selectedFontFamily}
+                    onChange={(e) => setSelectedFontFamily(e.target.value)}
+                    className="bg-transparent text-[10px] font-bold uppercase outline-none cursor-pointer"
+                   >
+                     <option value="sans-serif">Sans</option>
+                     <option value="serif">Serif</option>
+                     <option value="monospace">Mono</option>
+                   </select>
+                </div>
+                <div className="h-4 w-[1px] bg-border"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground">Size</span>
+                  <input 
+                    type="number" 
+                    min="8" 
+                    max="72" 
+                    value={selectedFontSize}
+                    onChange={(e) => setSelectedFontSize(parseInt(e.target.value))}
+                    className="w-10 bg-transparent text-[10px] font-bold outline-none"
+                  />
+                </div>
+                <div className="h-4 w-[1px] bg-border"></div>
+              </>
+            )}
+
             <div className="flex items-center gap-2">
               <span className="text-[10px] uppercase font-bold text-muted-foreground">Color</span>
               <div className="flex gap-1">
@@ -148,7 +182,7 @@ export function EditorToolbar() {
                       "h-4 w-4 rounded-full border border-white/20 transition-transform",
                       selectedColor === color.value && "scale-125 ring-1 ring-primary ring-offset-1 ring-offset-card"
                     )}
-                    style={{ backgroundColor: color.value === 'rgba(255, 255, 0, 0.3)' ? '#FFFF00' : color.value }}
+                    style={{ backgroundColor: color.value.startsWith('rgba') ? '#FFFF00' : color.value }}
                     title={color.name}
                   />
                 ))}

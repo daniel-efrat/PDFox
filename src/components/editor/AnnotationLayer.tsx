@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Canvas, FabricObject, Textbox, Rect, PencilBrush } from "fabric";
+import { Canvas, FabricObject, Textbox, Rect, PencilBrush, Group } from "fabric";
 import { useEditorStore } from "@/stores/useEditorStore";
 import { EditorTool } from "@/types/editor";
+import { SignatureModal } from "./SignatureModal";
 
 interface AnnotationLayerProps {
   width: number;
@@ -21,8 +22,14 @@ export function AnnotationLayer({ width, height, pageIndex }: AnnotationLayerPro
     removeAnnotation, 
     annotations,
     selectedColor,
-    selectedBrushSize
+    selectedBrushSize,
+    selectedFontFamily,
+    selectedFontSize,
+    undo,
+    redo
   } = useEditorStore();
+
+  const [isSignModalOpen, setIsSignModalOpen] = useState(false);
 
   // Sync annotations from store to canvas (for undo/redo)
   useEffect(() => {
@@ -32,12 +39,7 @@ export function AnnotationLayer({ width, height, pageIndex }: AnnotationLayerPro
     // Clear current objects and re-add from store for this page
     const pageAnnotations = annotations.filter(a => a.pageIndex === pageIndex);
     
-    // Simple sync: if count differs or data differs, re-render
-    // For better performance, we could track IDs
-    const currentObjects = canvas.getObjects();
-    
-    // Clear and reload if mismatch
-    // (In a more complex app, we'd diff objects)
+    // Intelligent sync: clear and reload but ONLY when annotations change
     canvas.clear();
     
     pageAnnotations.forEach(async (anno) => {
@@ -50,6 +52,10 @@ export function AnnotationLayer({ width, height, pageIndex }: AnnotationLayerPro
       
       if (obj) {
         (obj as any).id = anno.id;
+        // Apply special properties for highlights
+        if (anno.type === 'HIGHLIGHT') {
+            obj.set({ fill: anno.data.fill || selectedColor, opacity: 0.4 });
+        }
         canvas.add(obj);
       }
     });
@@ -57,25 +63,9 @@ export function AnnotationLayer({ width, height, pageIndex }: AnnotationLayerPro
     canvas.requestRenderAll();
   }, [annotations, pageIndex]);
 
-  useEffect(() => {
-    if (!canvasRef.current) return;
-
-    const fabricCanvas = new Canvas(canvasRef.current, {
-      width,
   // Handle keyboard events (including Undo/Redo shortcuts)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Undo: Ctrl+Z
-      if (e.ctrlKey && e.key === 'z') {
-        e.preventDefault();
-        undo();
-      }
-      // Redo: Ctrl+Y or Ctrl+Shift+Z
-      if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'Z')) {
-        e.preventDefault();
-        redo();
-      }
-      
       // Deletion
       if (e.key === 'Backspace' || e.key === 'Delete') {
         if (!fabricRef.current) return;
@@ -90,6 +80,18 @@ export function AnnotationLayer({ width, height, pageIndex }: AnnotationLayerPro
           fabricRef.current.discardActiveObject();
           fabricRef.current.requestRenderAll();
         }
+        return;
+      }
+
+      // Undo: Ctrl+Z
+      if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        undo();
+      }
+      // Redo: Ctrl+Y or Ctrl+Shift+Z
+      if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && (e.key === 'Z' || e.key === 'z'))) {
+        e.preventDefault();
+        redo();
       }
     };
 
@@ -152,7 +154,8 @@ export function AnnotationLayer({ width, height, pageIndex }: AnnotationLayerPro
           left: pointer.x,
           top: pointer.y,
           width: 150,
-          fontSize: 20,
+          fontSize: selectedFontSize,
+          fontFamily: selectedFontFamily,
           fill: selectedColor,
         });
       } else if (activeTool === 'HIGHLIGHT') {
@@ -161,7 +164,8 @@ export function AnnotationLayer({ width, height, pageIndex }: AnnotationLayerPro
           top: pointer.y - 10,
           width: 100,
           height: 20,
-          fill: selectedColor,
+          fill: selectedColor.startsWith('rgba') ? selectedColor : 'rgba(255, 255, 0, 0.4)',
+          opacity: 0.4,
           strokeWidth: 0,
         });
       }
@@ -184,19 +188,16 @@ export function AnnotationLayer({ width, height, pageIndex }: AnnotationLayerPro
     return () => {
       fabricCanvas.dispose();
     };
-  }, [width, height, pageIndex, activeTool, addAnnotation, updateAnnotation, removeAnnotation, selectedColor]);
+  }, [width, height, pageIndex, activeTool, addAnnotation, updateAnnotation, selectedColor, selectedFontFamily, selectedFontSize]);
 
   const handleSaveSignature = async (sigData: any) => {
     if (!fabricRef.current) return;
     const canvas = fabricRef.current;
-    const point = (canvas as any).lastClickPoint || { x: 50, y: 50 };
+    const point = (canvas as any).lastClickPoint || { x: width / 2, y: height / 2 };
 
-    // Create a group or individual objects from the signature data
-    // For now, let's treat the signature as a collection of paths or a single object
     const id = Math.random().toString(36).substr(2, 9);
     
-    // We can use fromObject on the whole sigData if we want to restore everything
-    // But let's just add it as a "SIGNATURE" type
+    // sigData is the fabric canvas object from the modal
     const objects = await Promise.all(sigData.objects.map((o: any) => FabricObject.fromObject(o)));
     const group = new Group(objects as FabricObject[], {
       left: point.x,
@@ -219,14 +220,17 @@ export function AnnotationLayer({ width, height, pageIndex }: AnnotationLayerPro
     setIsSignModalOpen(false); // Close modal after saving
   };
 
+  // Synchronize tool settings (color, brush size, selectable state) WITHOUT clearing canvas
   useEffect(() => {
     if (!fabricRef.current) return;
     const canvas = fabricRef.current;
 
-    const isSelectionEnabled = ['SELECT', 'TEXT', 'HIGHLIGHT', 'SIGNATURE'].includes(activeTool);
+    const isSelectionEnabled = (['SELECT', 'TEXT', 'HIGHLIGHT', 'SIGNATURE'] as string[]).includes(activeTool);
     canvas.selection = activeTool === 'SELECT';
     
     canvas.getObjects().forEach(obj => {
+      // Keep ALL elements visible and selectable/evented at all times for easy selection
+      // But only allow moving/scaling if tool is SELECT or the specific tool
       obj.selectable = isSelectionEnabled;
       obj.evented = isSelectionEnabled;
     });
@@ -246,6 +250,13 @@ export function AnnotationLayer({ width, height, pageIndex }: AnnotationLayerPro
   return (
     <div className="absolute inset-0 z-10">
       <canvas ref={canvasRef} />
+      {isSignModalOpen && (
+        <SignatureModal 
+          isOpen={isSignModalOpen} 
+          onClose={() => setIsSignModalOpen(false)} 
+          onSave={handleSaveSignature} 
+        />
+      )}
     </div>
   );
 }

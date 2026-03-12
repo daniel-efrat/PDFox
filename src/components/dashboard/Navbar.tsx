@@ -38,7 +38,13 @@ export function DashboardNavbar() {
         </div>
         
         <div className="flex items-center gap-4">
-          <button className="flex items-center gap-2 h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium shadow-sm transition-transform active:scale-95">
+          <button 
+            onClick={() => {
+              const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+              if (input) input.click();
+            }}
+            className="flex items-center gap-2 h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium shadow-sm transition-transform active:scale-95"
+          >
             <Plus className="h-4 w-4" />
             Upload PDF
           </button>

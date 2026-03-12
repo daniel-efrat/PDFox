@@ -5,6 +5,8 @@ import { EditorState as BaseEditorState, EditorTool, Annotation } from '@/types/
 interface EditorState extends BaseEditorState {
   selectedBrushSize: number;
   selectedColor: string;
+  selectedFontFamily: string;
+  selectedFontSize: number;
   history: Annotation[][];
   historyIndex: number;
 }
@@ -12,6 +14,8 @@ interface EditorState extends BaseEditorState {
 interface EditorActions {
   setSelectedBrushSize: (size: number) => void;
   setSelectedColor: (color: string) => void;
+  setSelectedFontFamily: (font: string) => void;
+  setSelectedFontSize: (size: number) => void;
   undo: () => void;
   redo: () => void;
   setDocument: (id: string, title: string, totalPages: number) => void;
@@ -43,6 +47,8 @@ const initialState: EditorState = {
   hasUnsavedChanges: false,
   selectedBrushSize: 2,
   selectedColor: '#000000',
+  selectedFontFamily: 'sans-serif',
+  selectedFontSize: 20,
   history: [[]],
   historyIndex: 0,
 };
@@ -77,6 +83,10 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       setSelectedBrushSize: (size) => set({ selectedBrushSize: size }),
       
       setSelectedColor: (color) => set({ selectedColor: color }),
+
+      setSelectedFontFamily: (font) => set({ selectedFontFamily: font }),
+
+      setSelectedFontSize: (size) => set({ selectedFontSize: size }),
 
       undo: () => set((state) => {
         if (state.historyIndex > 0) {
