@@ -3,6 +3,9 @@
 import { supabase, supabaseAdmin } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { revalidatePath } from "next/cache";
+import { Annotation } from "@/types/editor";
+
+const ANNOTATION_MARKER = "__PDFOX_ANNOTATIONS__:";
 
 /**
  * Ensures a user exists in our database based on their Clerk profile.
@@ -248,4 +251,304 @@ export async function getDocument(id: string) {
   if (!document) throw new Error("Document not found");
 
   return document;
+}
+
+export async function getDocumentAnnotations(id: string): Promise<Annotation[]> {
+  const document = await getDocument(id);
+  const rawAnnotations = (document as { annotations?: unknown })?.annotations;
+  if (Array.isArray(rawAnnotations)) return rawAnnotations as Annotation[];
+
+  const description = (document as { description?: unknown })?.description;
+  if (typeof description !== "string") return [];
+  if (!description.startsWith(ANNOTATION_MARKER)) return [];
+
+  try {
+    const parsed = JSON.parse(description.slice(ANNOTATION_MARKER.length));
+    return Array.isArray(parsed) ? (parsed as Annotation[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveDocumentAnnotations(
+  id: string,
+  annotations: Annotation[],
+) {
+  const supabaseServer = createSupabaseServerClient();
+  const { data: authData, error: authErr } =
+    await supabaseServer.auth.getUser();
+  if (authErr || !authData?.user) throw new Error("Unauthorized");
+  const userId = authData.user.id;
+
+  const { data: dbUser, error: userError } = await supabaseAdmin
+    .from("User")
+    .select("id")
+    .eq("clerkId", userId)
+    .maybeSingle();
+
+  if (userError) throw userError;
+  if (!dbUser) throw new Error("User not found");
+
+  const directSavePayload: Record<string, unknown> = {
+    annotations,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const directSave = await supabaseAdmin
+    .from("Document")
+    .update(directSavePayload)
+    .eq("id", id)
+    .eq("ownerId", dbUser.id);
+
+  if (!directSave.error) {
+    revalidatePath(`/editor/${id}`);
+    return;
+  }
+
+  const fallbackSave = await supabaseAdmin
+    .from("Document")
+    .update({
+      description: `${ANNOTATION_MARKER}${JSON.stringify(annotations)}`,
+      updatedAt: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("ownerId", dbUser.id);
+
+  if (fallbackSave.error) throw fallbackSave.error;
+
+  revalidatePath(`/editor/${id}`);
+}
+
+export type SignatureSlotType = "SIGNATURE" | "INITIALS";
+export type SignatureImageUploadMode = "PNG_TRANSPARENT" | "PHOTO_WHITE_BG";
+
+function resolveWithoutBgApiKey(): string | null {
+  const candidates = [
+    process.env.WITHOUTBG_API_KEY,
+    process.env.WITHOUT_BG_API_KEY,
+    process.env.WITHOUTBG_KEY,
+    process.env.WITHOUTBG_API,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      return candidate.trim();
+    }
+  }
+
+  return null;
+}
+
+export interface SavedSignatureSlot {
+  id: string;
+  slot: SignatureSlotType;
+  data: string;
+  imageUrl: string | null;
+  updatedAt: string | null;
+}
+
+export async function getUserSignatureSlots(): Promise<SavedSignatureSlot[]> {
+  const supabaseServer = createSupabaseServerClient();
+  const { data: authData, error: authErr } =
+    await supabaseServer.auth.getUser();
+  if (authErr || !authData?.user) throw new Error("Unauthorized");
+  const userId = authData.user.id;
+
+  const { data: dbUser, error: userError } = await supabaseAdmin
+    .from("User")
+    .select("id")
+    .eq("clerkId", userId)
+    .maybeSingle();
+
+  if (userError) throw userError;
+  if (!dbUser) throw new Error("User not found");
+
+  const { data, error } = await supabaseAdmin
+    .from("Signature")
+    .select("id, title, data, imageUrl, updatedAt")
+    .eq("userId", dbUser.id)
+    .in("title", ["SIGNATURE", "INITIALS"])
+    .order("updatedAt", { ascending: false });
+
+  if (error) throw error;
+
+  const latestBySlot = new Map<SignatureSlotType, SavedSignatureSlot>();
+  for (const row of data ?? []) {
+    const slot = String(row.title).toUpperCase() as SignatureSlotType;
+    if (slot !== "SIGNATURE" && slot !== "INITIALS") continue;
+    if (latestBySlot.has(slot)) continue;
+
+    latestBySlot.set(slot, {
+      id: row.id,
+      slot,
+      data: row.data ?? "",
+      imageUrl: row.imageUrl ?? null,
+      updatedAt: row.updatedAt ?? null,
+    });
+  }
+
+  return Array.from(latestBySlot.values());
+}
+
+export async function saveUserSignatureSlot(
+  slot: SignatureSlotType,
+  data: string,
+  imageUrl: string | null,
+) {
+  const supabaseServer = createSupabaseServerClient();
+  const { data: authData, error: authErr } =
+    await supabaseServer.auth.getUser();
+  if (authErr || !authData?.user) throw new Error("Unauthorized");
+  const userId = authData.user.id;
+
+  const { data: dbUser, error: userError } = await supabaseAdmin
+    .from("User")
+    .select("id")
+    .eq("clerkId", userId)
+    .maybeSingle();
+
+  if (userError) throw userError;
+  if (!dbUser) throw new Error("User not found");
+
+  const normalizedSlot = slot === "INITIALS" ? "INITIALS" : "SIGNATURE";
+  const now = new Date().toISOString();
+
+  const { data: existingRows, error: existingError } = await supabaseAdmin
+    .from("Signature")
+    .select("id")
+    .eq("userId", dbUser.id)
+    .eq("title", normalizedSlot)
+    .order("updatedAt", { ascending: false });
+
+  if (existingError) throw existingError;
+
+  const primaryExistingId = existingRows?.[0]?.id ?? null;
+
+  if (primaryExistingId) {
+    const { error: updateError } = await supabaseAdmin
+      .from("Signature")
+      .update({
+        data,
+        imageUrl,
+        isDefault: true,
+        updatedAt: now,
+      })
+      .eq("id", primaryExistingId)
+      .eq("userId", dbUser.id);
+
+    if (updateError) throw updateError;
+
+    if ((existingRows?.length ?? 0) > 1) {
+      const duplicateIds = existingRows!.slice(1).map((r) => r.id);
+      const { error: dedupeError } = await supabaseAdmin
+        .from("Signature")
+        .delete()
+        .in("id", duplicateIds)
+        .eq("userId", dbUser.id);
+      if (dedupeError) throw dedupeError;
+    }
+  } else {
+    const { error: insertError } = await supabaseAdmin
+      .from("Signature")
+      .insert({
+        id: crypto.randomUUID(),
+        userId: dbUser.id,
+        title: normalizedSlot,
+        data,
+        imageUrl,
+        isDefault: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+    if (insertError) throw insertError;
+  }
+
+  revalidatePath("/dashboard");
+}
+
+export async function deleteUserSignatureSlot(slot: SignatureSlotType) {
+  const supabaseServer = createSupabaseServerClient();
+  const { data: authData, error: authErr } =
+    await supabaseServer.auth.getUser();
+  if (authErr || !authData?.user) throw new Error("Unauthorized");
+  const userId = authData.user.id;
+
+  const { data: dbUser, error: userError } = await supabaseAdmin
+    .from("User")
+    .select("id")
+    .eq("clerkId", userId)
+    .maybeSingle();
+
+  if (userError) throw userError;
+  if (!dbUser) throw new Error("User not found");
+
+  const normalizedSlot = slot === "INITIALS" ? "INITIALS" : "SIGNATURE";
+  const { error } = await supabaseAdmin
+    .from("Signature")
+    .delete()
+    .eq("userId", dbUser.id)
+    .eq("title", normalizedSlot);
+
+  if (error) throw error;
+  revalidatePath("/dashboard");
+}
+
+export async function processSignatureUploadImage(
+  imageDataUrl: string,
+  mode: SignatureImageUploadMode,
+): Promise<string> {
+  const supabaseServer = createSupabaseServerClient();
+  const { data: authData, error: authErr } =
+    await supabaseServer.auth.getUser();
+  if (authErr || !authData?.user) throw new Error("Unauthorized");
+
+  if (typeof imageDataUrl !== "string" || !imageDataUrl.startsWith("data:image/")) {
+    throw new Error("Invalid image payload");
+  }
+
+  if (mode === "PNG_TRANSPARENT") {
+    return imageDataUrl;
+  }
+
+  const apiKey = resolveWithoutBgApiKey();
+  if (!apiKey) {
+    throw new Error(
+      "withoutBG API key is not configured. Expected one of: WITHOUTBG_API_KEY, WITHOUT_BG_API_KEY, WITHOUTBG_KEY, WITHOUTBG_API. Restart dev server after updating env.",
+    );
+  }
+
+  const commaIndex = imageDataUrl.indexOf(",");
+  if (commaIndex < 0) {
+    throw new Error("Invalid image format");
+  }
+  const imageBase64 = imageDataUrl.slice(commaIndex + 1);
+
+  const response = await fetch(
+    "https://api.withoutbg.com/v1.0/image-without-background-base64",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": apiKey,
+      },
+      body: JSON.stringify({
+        image_base64: imageBase64,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`withoutBG request failed: ${response.status} ${errorText}`);
+  }
+
+  const data = (await response.json()) as {
+    img_without_background_base64?: string;
+  };
+  if (!data?.img_without_background_base64) {
+    throw new Error("withoutBG response is missing image data");
+  }
+
+  return `data:image/png;base64,${data.img_without_background_base64}`;
 }

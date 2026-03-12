@@ -1,5 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import type { SerializeOptions } from "cookie";
+
+type CookieToSet = {
+  name: string;
+  value: string;
+  options: Partial<SerializeOptions>;
+};
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -13,42 +20,22 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        async get(name: string) {
-          return request.cookies.get(name)?.value;
+        getAll() {
+          return request.cookies.getAll();
         },
-        async set(name: string, value: string, options: any) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          });
+        setAll(cookiesToSet: CookieToSet[]) {
+          for (const { name, value, options } of cookiesToSet) {
+            request.cookies.set({ name, value, ...options });
+          }
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           });
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-        },
-        async remove(name: string, options: any) {
-          request.cookies.set({
-            name,
-            value: "",
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({
-            name,
-            value: "",
-            ...options,
-          });
+
+          for (const { name, value, options } of cookiesToSet) {
+            response.cookies.set({ name, value, ...options });
+          }
         },
       },
     }
@@ -58,8 +45,18 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
+  const pathname = request.nextUrl.pathname;
+  const isProtectedRoute =
+    pathname.startsWith("/dashboard") || pathname.startsWith("/editor");
+  const isAuthRoute = pathname.startsWith("/auth");
+  const isHomeRoute = pathname === "/";
+
+  if (!user && isProtectedRoute) {
     return NextResponse.redirect(new URL("/auth/sign-in", request.url));
+  }
+
+  if (user && (isAuthRoute || isHomeRoute)) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;

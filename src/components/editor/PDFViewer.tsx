@@ -85,7 +85,7 @@ function PageRenderer({ pdf, pageNumber, scale }: PageRendererProps) {
       className="relative shadow-2xl shadow-black/20 border border-border bg-white rounded-sm mb-8 origin-top transition-all duration-200"
       style={{ width: viewportSize.width, height: viewportSize.height }}
     >
-      <canvas ref={canvasRef} className="block shadow-md" />
+      <canvas ref={canvasRef} className="block shadow-md pointer-events-none" />
       
       {viewportSize.width > 0 && (
         <AnnotationLayer 
@@ -101,7 +101,7 @@ function PageRenderer({ pdf, pageNumber, scale }: PageRendererProps) {
 export function PDFViewer({ fileUrl }: PDFViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
-  const { totalPages, zoom, setDocument } = useEditorStore();
+  const { totalPages, zoom, setTotalPages } = useEditorStore();
 
   useEffect(() => {
     const loadPdf = async () => {
@@ -109,7 +109,7 @@ export function PDFViewer({ fileUrl }: PDFViewerProps) {
         const loadingTask = pdfjsLib.getDocument(fileUrl);
         const pdfDoc = await loadingTask.promise;
         setPdf(pdfDoc);
-        setDocument(fileUrl, "Sample Document", pdfDoc.numPages);
+        setTotalPages(pdfDoc.numPages);
         
         if (typeof window !== "undefined") {
           (window as any).PDF_FILE_URL = fileUrl;
@@ -120,7 +120,7 @@ export function PDFViewer({ fileUrl }: PDFViewerProps) {
     };
 
     if (fileUrl) loadPdf();
-  }, [fileUrl, setDocument]);
+  }, [fileUrl, setTotalPages]);
 
   return (
     <div 

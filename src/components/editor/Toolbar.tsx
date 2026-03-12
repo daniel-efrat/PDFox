@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { 
   MousePointer2, 
   Type, 
@@ -8,7 +9,6 @@ import {
   RotateCw, 
   Trash2, 
   Download, 
-  Save,
   ZoomIn,
   ZoomOut,
   ChevronLeft,
@@ -18,8 +18,11 @@ import {
 import { useEditorStore } from "@/stores/useEditorStore";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { getDocument, saveDocumentAnnotations } from "@/actions/documents";
+import { bakeAnnotations } from "@/lib/pdf/export";
 
 export function EditorToolbar() {
+  const [isExporting, setIsExporting] = useState(false);
   const { 
     activeTool, 
     setActiveTool, 
@@ -44,8 +47,46 @@ export function EditorToolbar() {
     selectedFontFamily,
     setSelectedFontFamily,
     selectedFontSize,
-    setSelectedFontSize
+    setSelectedFontSize,
+    annotations,
+    documentId,
+    setUnsavedChanges
   } = useEditorStore();
+
+  const handleExport = async () => {
+    if (!documentId || isExporting) return;
+    try {
+      setIsExporting(true);
+      if (hasUnsavedChanges) {
+        await saveDocumentAnnotations(documentId, annotations);
+        setUnsavedChanges(false);
+      }
+      const document = await getDocument(documentId);
+      const sourceResponse = await fetch(document.fileUrl);
+      if (!sourceResponse.ok) {
+        throw new Error("Failed to download source PDF");
+      }
+      const sourceBytes = new Uint8Array(await sourceResponse.arrayBuffer());
+      const exportedBytes = await bakeAnnotations(sourceBytes, annotations);
+      const copiedBytes = new Uint8Array(exportedBytes.length);
+      copiedBytes.set(exportedBytes);
+      const blob = new Blob([copiedBytes.buffer], { type: "application/pdf" });
+      const objectUrl = URL.createObjectURL(blob);
+      const link = window.document.createElement("a");
+      const baseTitle = String(title || document.title || "document").trim();
+      link.href = objectUrl;
+      link.download = `${baseTitle || "document"}-export.pdf`;
+      window.document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error("Failed to export PDF:", error);
+      window.alert("Failed to export PDF. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const tools = [
     { id: 'SELECT', icon: MousePointer2, label: 'Select' },
@@ -123,7 +164,7 @@ export function EditorToolbar() {
 
       {/* Contextual Tool Controls */}
       <div className="flex items-center gap-4">
-        {(activeTool === 'DRAW' || activeTool === 'TEXT' || activeTool === 'HIGHLIGHT') && (
+        {(activeTool === 'SELECT' || activeTool === 'DRAW' || activeTool === 'TEXT' || activeTool === 'HIGHLIGHT' || activeTool === 'SIGNATURE') && (
           <div className="flex items-center gap-3 bg-muted/30 px-3 py-1 rounded-lg border border-border">
             {activeTool === 'DRAW' && (
               <>
@@ -190,12 +231,6 @@ export function EditorToolbar() {
             </div>
           </div>
         )}
-        
-        {activeTool === 'SIGNATURE' && (
-          <div className="text-[10px] font-medium text-primary animate-pulse bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-            Signature capture pad will open...
-          </div>
-        )}
       </div>
 
       <div className="flex items-center gap-3">
@@ -247,9 +282,13 @@ export function EditorToolbar() {
           Delete
         </button>
 
-        <button className="flex items-center gap-2 px-4 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95">
+        <button
+          onClick={handleExport}
+          disabled={isExporting || !documentId}
+          className="flex items-center gap-2 px-4 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <Download className="h-3.5 w-3.5" />
-          Export
+          {isExporting ? "Exporting..." : "Export"}
         </button>
       </div>
     </div>

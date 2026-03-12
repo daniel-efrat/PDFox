@@ -19,12 +19,14 @@ interface EditorActions {
   undo: () => void;
   redo: () => void;
   setDocument: (id: string, title: string, totalPages: number) => void;
+  setTotalPages: (totalPages: number) => void;
   setCurrentPage: (page: number) => void;
   setZoom: (zoom: number) => void;
   setActiveTool: (tool: EditorTool) => void;
   togglePageSelection: (index: number) => void;
   clearPageSelection: () => void;
   addAnnotation: (annotation: Annotation) => void;
+  setAnnotations: (annotations: Annotation[]) => void;
   updateAnnotation: (id: string, data: any) => void;
   removeAnnotation: (id: string) => void;
   setSaving: (isSaving: boolean) => void;
@@ -60,6 +62,9 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
       setDocument: (id, title, totalPages) => 
         set({ documentId: id, title, totalPages, hasUnsavedChanges: false }),
+
+      setTotalPages: (totalPages) =>
+        set({ totalPages: Math.max(0, totalPages) }),
       
       setCurrentPage: (page) => 
         set((state) => ({ currentPage: Math.max(1, Math.min(page, state.totalPages)) })),
@@ -123,6 +128,14 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             hasUnsavedChanges: true 
           };
         }),
+
+      setAnnotations: (annotations) =>
+        set((state) => ({
+          annotations,
+          history: [annotations],
+          historyIndex: 0,
+          hasUnsavedChanges: false,
+        })),
       
       updateAnnotation: (id, data) => 
         set((state) => {
