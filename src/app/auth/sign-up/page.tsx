@@ -14,7 +14,7 @@ export default function SignUpPage() {
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
 
   const handleSignUp = async () => {
@@ -46,7 +46,9 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md p-8 rounded-xl border border-border bg-card shadow-lg">
-        <h1 className="text-2xl font-bold mb-6 text-center">Create PDFox Account</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">
+          Create PDFab Account
+        </h1>
         <div className="space-y-4">
           <input
             type="text"

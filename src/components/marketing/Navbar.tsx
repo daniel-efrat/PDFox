@@ -13,27 +13,39 @@ export function MarketingNavbar() {
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/logo-no-txt.png"
-              alt="PDFox Logo"
+              src="/logo-navbar.png"
+              alt="PDFab Logo"
               width={32}
               height={32}
               className="rounded-lg"
             />
             <span className="text-xl font-bold tracking-tight text-white">
-              PDFox
+              PDFab
             </span>
           </Link>
           <div className="hidden md:ml-10 md:flex md:items-center md:gap-8">
-            <Link href="#product" className="text-sm font-medium text-white/70 transition-colors hover:text-white">
+            <Link
+              href="#product"
+              className="text-sm font-medium text-white/70 transition-colors hover:text-white"
+            >
               Product
             </Link>
-            <Link href="#pricing" className="text-sm font-medium text-white/70 transition-colors hover:text-white">
+            <Link
+              href="#pricing"
+              className="text-sm font-medium text-white/70 transition-colors hover:text-white"
+            >
               Pricing
             </Link>
-            <Link href="#docs" className="text-sm font-medium text-white/70 transition-colors hover:text-white">
+            <Link
+              href="#docs"
+              className="text-sm font-medium text-white/70 transition-colors hover:text-white"
+            >
               Docs
             </Link>
-            <Link href="#contact" className="text-sm font-medium text-white/70 transition-colors hover:text-white">
+            <Link
+              href="#contact"
+              className="text-sm font-medium text-white/70 transition-colors hover:text-white"
+            >
               Contact
             </Link>
           </div>

@@ -20,11 +20,12 @@ export function Hero() {
               transition={{ duration: 0.5 }}
             >
               <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
-                Edit PDFs the <span className="text-primary italic">Clever</span> Way
+                Edit PDFs the{" "}
+                <span className="text-primary italic">Clever</span> Way
               </h1>
               <p className="mt-6 text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0">
-                Crop, sign, annotate, and organize PDFs instantly in your browser. 
-                Full-featured, lightning-fast, and completely secure.
+                Crop, sign, annotate, and organize PDFs instantly in your
+                browser. Full-featured, lightning-fast, and completely secure.
               </p>
             </motion.div>
 
@@ -40,9 +41,7 @@ export function Hero() {
               >
                 Edit Your PDF
               </Link>
-              <button
-                className="px-8 py-4 rounded-xl bg-card/40 backdrop-blur-sm border border-border text-white font-bold text-lg hover:bg-card/60 transition-all"
-              >
+              <button className="px-8 py-4 rounded-xl bg-card/40 backdrop-blur-sm border border-border text-white font-bold text-lg hover:bg-card/60 transition-all">
                 Try Demo
               </button>
             </motion.div>
@@ -56,15 +55,15 @@ export function Hero() {
           >
             <div className="relative rounded-2xl border border-white/10 bg-black/40 p-2 shadow-2xl glass-card">
               <div className="relative overflow-hidden rounded-xl">
-                 <Image
-                    src="/editor-mockup.png"
-                    alt="PDFox Editor Interface"
-                    width={1000}
-                    height={700}
-                    className="w-full h-auto object-cover"
-                    priority
-                 />
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                <Image
+                  src="/editor-mockup.png"
+                  alt="PDFab Editor Interface"
+                  width={1000}
+                  height={700}
+                  className="w-full h-auto object-cover"
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
               </div>
             </div>
           </motion.div>

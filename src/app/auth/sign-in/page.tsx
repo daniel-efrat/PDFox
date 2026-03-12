@@ -13,7 +13,7 @@ export default function SignInPage() {
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
 
   const handleSignIn = async () => {
@@ -40,7 +40,9 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md p-8 rounded-xl border border-border bg-card shadow-lg">
-        <h1 className="text-2xl font-bold mb-6 text-center">Sign In to PDFox</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">
+          Sign In to PDFab
+        </h1>
         <div className="space-y-4">
           <input
             type="email"

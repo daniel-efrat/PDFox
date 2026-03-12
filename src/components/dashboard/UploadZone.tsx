@@ -18,8 +18,8 @@ export function UploadZone() {
       fileInputRef.current?.click();
     };
 
-    window.addEventListener("pdfox:upload-pdf", handler);
-    return () => window.removeEventListener("pdfox:upload-pdf", handler);
+    window.addEventListener("pdfab:upload-pdf", handler);
+    return () => window.removeEventListener("pdfab:upload-pdf", handler);
   }, []);
 
   const onUpload = async (file: File) => {
@@ -34,7 +34,7 @@ export function UploadZone() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      
+
       const doc = await uploadDocument(formData);
       router.push(`/editor/${doc.id}`);
     } catch (err) {
@@ -48,7 +48,7 @@ export function UploadZone() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files[0];
     if (file) onUpload(file);
   };
@@ -56,14 +56,19 @@ export function UploadZone() {
   return (
     <div className="space-y-4 w-full">
       <div
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         className={cn(
           "relative border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center gap-4 transition-all cursor-pointer group",
-          isDragging ? "border-primary bg-primary/5 scale-[1.02]" : "border-border bg-card/50 hover:border-primary/50",
-          isUploading && "pointer-events-none opacity-60"
+          isDragging
+            ? "border-primary bg-primary/5 scale-[1.02]"
+            : "border-border bg-card/50 hover:border-primary/50",
+          isUploading && "pointer-events-none opacity-60",
         )}
       >
         <input
@@ -89,7 +94,9 @@ export function UploadZone() {
             </div>
             <div>
               <p className="font-semibold text-base mb-1">Drop your PDF here</p>
-              <p className="text-sm text-muted-foreground">or click to browse files</p>
+              <p className="text-sm text-muted-foreground">
+                or click to browse files
+              </p>
             </div>
             <p className="text-[11px] text-muted-foreground pt-6 border-t border-border w-full">
               Maximum file size: 50MB

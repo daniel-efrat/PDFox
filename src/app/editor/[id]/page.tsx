@@ -13,12 +13,12 @@ import { EditorToolbar } from "@/components/editor/Toolbar";
 
 const PDFViewer = dynamicLoader(
   () => import("@/components/editor/PDFViewer").then((mod) => mod.PDFViewer),
-  { ssr: false }
+  { ssr: false },
 );
 
 const EditorSidebar = dynamicLoader(
   () => import("@/components/editor/Sidebar").then((mod) => mod.EditorSidebar),
-  { ssr: false }
+  { ssr: false },
 );
 
 export const dynamic = "force-dynamic";
@@ -91,14 +91,23 @@ export default function EditorPage() {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [annotations, hasUnsavedChanges, id, documentId, setSaving, setUnsavedChanges]);
+  }, [
+    annotations,
+    hasUnsavedChanges,
+    id,
+    documentId,
+    setSaving,
+    setUnsavedChanges,
+  ]);
 
   if (loading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-          <p className="text-sm font-medium text-muted-foreground">Loading PDFox Editor...</p>
+          <p className="text-sm font-medium text-muted-foreground">
+            Loading PDFab Editor...
+          </p>
         </div>
       </div>
     );
@@ -122,16 +131,22 @@ export default function EditorPage() {
         </div>
 
         <div className="w-80 border-l border-border bg-card/40 hidden xl:block p-6">
-          <h3 className="text-sm font-semibold uppercase tracking-wider mb-6">Properties</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wider mb-6">
+            Properties
+          </h3>
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-xs text-muted-foreground">Document Title</label>
+              <label className="text-xs text-muted-foreground">
+                Document Title
+              </label>
               <div className="text-sm font-medium bg-background border border-border rounded-md px-3 py-2">
                 {docData.title}
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-xs text-muted-foreground">Created At</label>
+              <label className="text-xs text-muted-foreground">
+                Created At
+              </label>
               <div className="text-sm font-medium">
                 {new Date(docData.createdAt).toLocaleDateString()}
               </div>

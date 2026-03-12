@@ -1,6 +1,6 @@
-# PDFox - Modern SaaS PDF Editor
+# PDFab - Modern SaaS PDF Editor
 
-PDFox is a complete, production-ready SaaS web application for editing, annotating, and signing PDFs. It features a polished dark-mode UI, secure backend, and a robust in-browser PDF editing experience.
+PDFab is a complete, production-ready SaaS web application for editing, annotating, and signing PDFs. It features a polished dark-mode UI, secure backend, and a robust in-browser PDF editing experience.
 
 ## Features
 
@@ -26,23 +26,28 @@ PDFox is a complete, production-ready SaaS web application for editing, annotati
 ## Getting Started
 
 ### 1. Clone & Install
+
 ```bash
 npm install
 ```
 
 ### 2. Environment Setup
+
 Copy `.env.example` to `.env` and fill in your credentials:
+
 - Clerk (Publishable & Secret keys)
 - Supabase (URL & Keys)
 - PostgreSQL (DATABASE_URL)
 - Stripe (Secret & Webhook keys)
 
 ### 3. Database Migration
+
 ```bash
 npx prisma db push
 ```
 
 ### 4. Development Server
+
 ```bash
 npm run dev
 ```

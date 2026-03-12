@@ -1,6 +1,10 @@
-import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
-import { EditorState as BaseEditorState, EditorTool, Annotation } from '@/types/editor';
+import { create } from "zustand";
+import { devtools } from "zustand/middleware";
+import {
+  EditorState as BaseEditorState,
+  EditorTool,
+  Annotation,
+} from "@/types/editor";
 
 interface EditorState extends BaseEditorState {
   selectedBrushSize: number;
@@ -38,18 +42,18 @@ interface EditorActions {
 
 const initialState: EditorState = {
   documentId: null,
-  title: 'Untitled Document',
+  title: "Untitled Document",
   totalPages: 0,
   currentPage: 1,
   zoom: 1.0,
-  activeTool: 'SELECT',
+  activeTool: "SELECT",
   selectedPageIndices: [],
   annotations: [],
   isSaving: false,
   hasUnsavedChanges: false,
   selectedBrushSize: 2,
-  selectedColor: '#000000',
-  selectedFontFamily: 'sans-serif',
+  selectedColor: "#000000",
+  selectedFontFamily: "sans-serif",
   selectedFontSize: 20,
   history: [[]],
   historyIndex: 0,
@@ -60,72 +64,73 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     (set) => ({
       ...initialState,
 
-      setDocument: (id, title, totalPages) => 
+      setDocument: (id, title, totalPages) =>
         set({ documentId: id, title, totalPages, hasUnsavedChanges: false }),
 
       setTotalPages: (totalPages) =>
         set({ totalPages: Math.max(0, totalPages) }),
-      
-      setCurrentPage: (page) => 
-        set((state) => ({ currentPage: Math.max(1, Math.min(page, state.totalPages)) })),
-      
-      setZoom: (zoom) => 
-        set({ zoom: Math.max(0.1, Math.min(zoom, 5.0)) }),
-      
-      setActiveTool: (tool) => 
-        set({ activeTool: tool }),
-      
-      togglePageSelection: (index) => 
+
+      setCurrentPage: (page) =>
+        set((state) => ({
+          currentPage: Math.max(1, Math.min(page, state.totalPages)),
+        })),
+
+      setZoom: (zoom) => set({ zoom: Math.max(0.1, Math.min(zoom, 5.0)) }),
+
+      setActiveTool: (tool) => set({ activeTool: tool }),
+
+      togglePageSelection: (index) =>
         set((state) => ({
           selectedPageIndices: state.selectedPageIndices.includes(index)
             ? state.selectedPageIndices.filter((i) => i !== index)
             : [...state.selectedPageIndices, index],
         })),
-      
-      clearPageSelection: () => 
-        set({ selectedPageIndices: [] }),
-      
+
+      clearPageSelection: () => set({ selectedPageIndices: [] }),
+
       setSelectedBrushSize: (size) => set({ selectedBrushSize: size }),
-      
+
       setSelectedColor: (color) => set({ selectedColor: color }),
 
       setSelectedFontFamily: (font) => set({ selectedFontFamily: font }),
 
       setSelectedFontSize: (size) => set({ selectedFontSize: size }),
 
-      undo: () => set((state) => {
-        if (state.historyIndex > 0) {
-          const newIndex = state.historyIndex - 1;
-          return {
-            historyIndex: newIndex,
-            annotations: state.history[newIndex]
-          };
-        }
-        return state;
-      }),
+      undo: () =>
+        set((state) => {
+          if (state.historyIndex > 0) {
+            const newIndex = state.historyIndex - 1;
+            return {
+              historyIndex: newIndex,
+              annotations: state.history[newIndex],
+            };
+          }
+          return state;
+        }),
 
-      redo: () => set((state) => {
-        if (state.historyIndex < state.history.length - 1) {
-          const newIndex = state.historyIndex + 1;
-          return {
-            historyIndex: newIndex,
-            annotations: state.history[newIndex]
-          };
-        }
-        return state;
-      }),
+      redo: () =>
+        set((state) => {
+          if (state.historyIndex < state.history.length - 1) {
+            const newIndex = state.historyIndex + 1;
+            return {
+              historyIndex: newIndex,
+              annotations: state.history[newIndex],
+            };
+          }
+          return state;
+        }),
 
-      addAnnotation: (annotation) => 
+      addAnnotation: (annotation) =>
         set((state) => {
           const newAnnotations = [...state.annotations, annotation];
           const newHistory = state.history.slice(0, state.historyIndex + 1);
           newHistory.push(newAnnotations);
-          
-          return { 
+
+          return {
             annotations: newAnnotations,
             history: newHistory,
             historyIndex: newHistory.length - 1,
-            hasUnsavedChanges: true 
+            hasUnsavedChanges: true,
           };
         }),
 
@@ -136,11 +141,11 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           historyIndex: 0,
           hasUnsavedChanges: false,
         })),
-      
-      updateAnnotation: (id, data) => 
+
+      updateAnnotation: (id, data) =>
         set((state) => {
-          const newAnnotations = state.annotations.map((a) => 
-            a.id === id ? { ...a, data } : a
+          const newAnnotations = state.annotations.map((a) =>
+            a.id === id ? { ...a, data } : a,
           );
           const newHistory = state.history.slice(0, state.historyIndex + 1);
           newHistory.push(newAnnotations);
@@ -149,11 +154,11 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             annotations: newAnnotations,
             history: newHistory,
             historyIndex: newHistory.length - 1,
-            hasUnsavedChanges: true
+            hasUnsavedChanges: true,
           };
         }),
-      
-      removeAnnotation: (id) => 
+
+      removeAnnotation: (id) =>
         set((state) => {
           const newAnnotations = state.annotations.filter((a) => a.id !== id);
           const newHistory = state.history.slice(0, state.historyIndex + 1);
@@ -163,30 +168,30 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             annotations: newAnnotations,
             history: newHistory,
             historyIndex: newHistory.length - 1,
-            hasUnsavedChanges: true
+            hasUnsavedChanges: true,
           };
         }),
-      
+
       setSaving: (isSaving) => set({ isSaving }),
-      
+
       setUnsavedChanges: (hasUnsavedChanges) => set({ hasUnsavedChanges }),
-      
+
       rotatePage: (index, angle) =>
         set((state) => ({
           // Logic for rotation would go here
           // For now, let's just mark it as unsaved change
-          hasUnsavedChanges: true
+          hasUnsavedChanges: true,
         })),
 
       deletePages: (indices) =>
         set((state) => ({
           totalPages: Math.max(0, state.totalPages - indices.length),
           selectedPageIndices: [],
-          hasUnsavedChanges: true
+          hasUnsavedChanges: true,
         })),
 
       reset: () => set(initialState),
     }),
-    { name: 'PDFoxEditor' }
-  )
+    { name: "PDFabEditor" },
+  ),
 );
