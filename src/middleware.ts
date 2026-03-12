@@ -1,11 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import type { SerializeOptions } from "cookie";
 
 type CookieToSet = {
   name: string;
   value: string;
-  options: Partial<SerializeOptions>;
+  options?: {
+    domain?: string;
+    expires?: Date;
+    httpOnly?: boolean;
+    maxAge?: number;
+    path?: string;
+    sameSite?: "lax" | "strict" | "none" | boolean;
+    secure?: boolean;
+    priority?: "low" | "medium" | "high";
+    partitioned?: boolean;
+  };
 };
 
 export async function middleware(request: NextRequest) {
@@ -24,7 +33,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet: CookieToSet[]) {
-          for (const { name, value, options } of cookiesToSet) {
+          for (const { name, value, options = {} } of cookiesToSet) {
             request.cookies.set({ name, value, ...options });
           }
           response = NextResponse.next({
@@ -33,7 +42,7 @@ export async function middleware(request: NextRequest) {
             },
           });
 
-          for (const { name, value, options } of cookiesToSet) {
+          for (const { name, value, options = {} } of cookiesToSet) {
             response.cookies.set({ name, value, ...options });
           }
         },
